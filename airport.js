@@ -46,8 +46,10 @@ function active(){
     return {ctx, pageId: null, html: '<div class="col"><div class="cfg-big"><small>Active HPN configuration</small>No HPN ATIS</div>' +
       '<p>Refresh live ATIS, or paste the HPN ATIS above. The Playbook pages below work without it.</p></div>'};
   }
-  const cfgTxt = pair && pair.land && pair.dep ? 'Land ' + pair.land + ' / Depart ' + pair.dep
-    : pair && pair.dep ? 'Depart ' + pair.dep : pair && pair.land ? 'Land ' + pair.land : 'Runways not found in ATIS';
+  // HPN often uses two runways at once ("LANDING AND DEPARTING 34, 29"): show them all
+  const lands = pair ? pair.lands.join(', ') : '', deps = pair ? pair.deps.join(', ') : '';
+  const cfgTxt = lands && deps ? 'Land ' + lands + ' / Depart ' + deps
+    : deps ? 'Depart ' + deps : lands ? 'Land ' + lands : 'Runways not found in ATIS';
   const apprTxt = hpn.appr.length ? uniq(hpn.appr.map(a => a.kind + (a.variant ? ' ' + a.variant : '') + ' ' + a.rwy)).join(', ') : '—';
   const inUse = uniq([...(pair ? pair.lands : []), ...(pair ? pair.deps : [])]);
   const uses = r => inUse.includes(r);
