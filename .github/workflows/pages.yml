@@ -53,6 +53,13 @@ jobs:
           repository: colef12/playbook-core
           ref: lab
           path: site/lab/core
+      # Cache-busting: stamp each file's commit into its URL so browsers fetch a new version right away
+      - name: Version the script and style URLs
+        run: |
+          stamp(){ dir=$1; core=$(git -C $dir/core rev-parse --short HEAD); own=$(git -C $dir rev-parse --short HEAD)
+            [ -f $dir/index.html ] || return 0
+            sed -i -e "s#\"core/core.js\"#\"core/core.js?v=$core\"#" -e "s#\"core/core.css\"#\"core/core.css?v=$core\"#" -e "s#\"airport.js\"#\"airport.js?v=$own\"#" $dir/index.html; }
+          stamp site; stamp site/lab
       - name: Remove repo-only files
         run: rm -rf site/.git site/.github site/lab/.git site/lab/.github site/core/.git site/lab/core/.git
       - uses: actions/configure-pages@v5
