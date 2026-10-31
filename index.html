@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>HPN Playbook Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="core/core.css">
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>HPN Playbook <span style="font:700 .9rem var(--f-body);letter-spacing:.08em;color:var(--warn);border:1.5px solid currentColor;border-radius:3px;padding:1px 6px;vertical-align:6px">LAB</span></h1>
+      <p class="sub">vZNY Westchester ATCT SOP Rev. 3 · VATSIM ATIS first, real-world D-ATIS where VATSIM has none</p>
+    </div>
+    <div class="controls">
+      <button id="testbtn" class="btn ghost" type="button" aria-pressed="false">Test mode</button>
+      <button id="refresh" class="btn" type="button">Refresh ATIS</button>
+      <label class="chk"><input id="auto" type="checkbox" checked> Auto every 2 min</label>
+    </div>
+  </header>
+  <p id="status" class="status" role="status">Live ATIS loads through the Claude desktop app. You can paste an ATIS into any strip below.</p>
+
+  <section class="testp" id="testpanel" aria-label="Test configurations" hidden>
+    <div class="testp-head">
+      <h2>Test mode <span class="muted" style="font:500 .9rem var(--f-body)">· the strips and Active block use these settings instead of live ATIS</span></h2>
+      <button type="button" class="btn ghost" id="testexit">Back to live ATIS</button>
+    </div>
+    <div class="presets" id="presets" role="group" aria-label="Presets"></div>
+    <div class="tgrid">
+      <fieldset>
+        <legend>KHPN</legend>
+        <label for="t-hpn-appr">Approach in use</label>
+        <select id="t-hpn-appr">
+          <option>ILS RWY 16</option><option>ILS RWY 34</option><option>RNAV RWY 11</option><option>RNAV RWY 29</option>
+          <option>VISUAL RWY 16</option><option>VISUAL RWY 34</option><option>VISUAL RWY 11</option><option>VISUAL RWY 29</option>
+        </select>
+        <span class="lbl">Also landing</span>
+        <div class="checks" id="t-hpn-also">
+          <label><input type="checkbox" value="16">16</label><label><input type="checkbox" value="34">34</label><label><input type="checkbox" value="11">11</label><label><input type="checkbox" value="29">29</label>
+        </div>
+        <label for="t-hpn-dep">Departure runway</label>
+        <select id="t-hpn-dep"><option>16</option><option>34</option><option>11</option><option>29</option></select>
+        <div class="trow">
+          <div><label for="t-hpn-wd">Wind from (°)</label><input id="t-hpn-wd" type="number" min="0" max="360" step="10" value="160"></div>
+          <div><label for="t-hpn-ws">Speed (kt)</label><input id="t-hpn-ws" type="number" min="0" max="80" value="10"></div>
+          <div><label for="t-hpn-wg">Gust (kt)</label><input id="t-hpn-wg" type="number" min="0" max="90" placeholder="none"></div>
+        </div>
+        <div class="trow">
+          <div><label for="t-hpn-ceil">Ceiling (ft)</label><input id="t-hpn-ceil" type="number" min="0" step="100" placeholder="none"></div>
+          <div><label for="t-hpn-vis">Vis (SM)</label><input id="t-hpn-vis" type="number" min="0" max="10" step="0.25" value="10"></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>KLGA</legend>
+        <label class="chk2"><input id="t-lga-on" type="checkbox" checked> ATIS available</label>
+        <label for="t-lga-appr">Approach in use</label>
+        <select id="t-lga-appr"><option>ILS RWY 22</option><option>ILS RWY 4</option><option>ILS RWY 13</option><option>RNAV X RWY 31</option></select>
+        <label for="t-lga-dep">Departure runway</label>
+        <select id="t-lga-dep"><option>13</option><option>4</option><option>31</option><option>22</option></select>
+      </fieldset>
+    </div>
+  </section>
+
+  <section class="strips" aria-label="ATIS">
+    <article class="atis none" id="card-HPN"></article>
+    <article class="atis none" id="card-LGA"></article>
+    <article class="atis refcard" aria-label="Reference">
+      <div class="atis-head"><div class="atis-id">Reference</div><span class="muted" style="font-size:.78rem">Westchester ATCT</span></div>
+      <div class="refgrid">
+        <button type="button" class="refbtn" data-pop="exits"><span class="rb-t">Valid Exits</span><span class="rb-s">Gates + radials</span></button>
+        <button type="button" class="refbtn" data-pop="freqs"><span class="rb-t">Positions</span><span class="rb-s">Frequencies</span></button>
+        <button type="button" class="refbtn" data-pop="amend"><span class="rb-t">Common Amendments</span><span class="rb-s">Filed exit joins</span></button>
+        <button type="button" class="refbtn" data-pop="prd"><span class="rb-t">ZNY PRD</span><span class="rb-s">Preferred routes</span></button>
+        <button type="button" class="refbtn" data-pop="isect"><span class="rb-t">Intersection Distances</span><span class="rb-s">Usable runway lengths</span></button>
+        <a class="refbtn sop" href="https://wiki.nyartcc.org/wiki/HPN_SOP" target="_blank" rel="noopener"><span class="rb-t">HPN SOP <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2h5v5M14 2 7 9M12 9v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h4"/></svg></span><span class="rb-s">Full SOP, new tab</span></a>
+      </div>
+    </article>
+  </section>
+
+  <section class="active" id="active" aria-label="Active configuration"></section>
+
+  <nav class="rail" id="rail" aria-label="Playbook pages"></nav>
+  <nav class="subrail" id="subrail" aria-label="Pages in this group" hidden></nav>
+
+  <!-- ===================== PAGES ===================== -->
+  <section class="page" id="overview" data-page>
+    <h2>How to use this Playbook</h2>
+    <p class="lead">The strip above reads HPN's ATIS and checks the runways in use against the SOP's tower rules. The HPN SOP has no runway selection table: the configuration comes from the ATIS, and N90 provides the TRACON services.</p>
+    <h3>Positions</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Position</th><th>Callsign</th><th>Radio name</th><th>Frequency</th><th>ID</th></tr></thead>
+      <tbody>
+        <tr><td>Clearance Delivery</td><td class="num">HPN_DEL</td><td>Westchester Clearance Delivery</td><td class="num">127.250</td><td class="num"></td></tr>
+        <tr><td>Ground Control</td><td class="num">HPN_GND</td><td>Westchester Ground</td><td class="num">121.825</td><td class="num"></td></tr>
+        <tr><td>Local Control</td><td class="num">HPN_TWR</td><td>Westchester Tower</td><td class="num">118.575</td><td class="num">1W</td></tr>
+        <tr><td>ATIS</td><td class="num">KHPN_ATIS</td><td></td><td class="num">133.800</td><td class="num"></td></tr>
+      </tbody>
+    </table></div>
+    <h3>Rules on every departure</h3>
+    <ul>
+      <li>Assign the HPN# departure (say "WESTCHESTER (number)") to all aircraft.</li>
+      <li>PROP# departure: runway 16 only, and only when NY TRACON requests it. Never issue it otherwise.</li>
+      <li>Initial altitude 3,000 ft. HPN SIDs have no published altitude, so say "MAINTAIN 3,000."</li>
+      <li>Releases are automatic unless N90 asks for individual releases.</li>
+      <li>Standard departure separation: anticipated radar separation.</li>
+    </ul>
+    <h3>Pages</h3>
+    <ul>
+      <li><b>Delivery:</b> the HPN# and PROP# rules, exits and Common Amendments.</li>
+      <li><b>Ground:</b> departure sequencing and intersection departures.</li>
+      <li><b>Local:</b> tower airspace, radar rules, intersecting runways, LAHSO and pattern work.</li>
+      <li><b>Strips:</b> live HPN departures from the VATSIM feed, with exit checks and the clearance.</li>
+    </ul>
+  </section>
+
+  <section class="page" id="clearance" data-page hidden>
+    <h2>Clearance Delivery</h2>
+    <p class="lead">Every IFR departure gets the HPN# departure and "maintain 3,000." The only alternative is PROP#, which NY TRACON must ask for.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Procedure</th><th>Who</th><th>Runway</th><th>Altitude</th></tr></thead>
+      <tbody>
+        <tr><td>HPN# (WESTCHESTER #)</td><td>All aircraft</td><td>Any</td><td class="num">Maintain 3,000</td></tr>
+        <tr><td>PROP#</td><td>Only when NY TRACON requests</td><td>16 only</td><td class="num">Maintain 3,000</td></tr>
+      </tbody>
+    </table></div>
+    <blockquote>CLEARED TO (limit) AIRPORT, WESTCHESTER (number) DEPARTURE, RADAR VECTORS (exit), THEN AS FILED. MAINTAIN 3,000. EXPECT (filed altitude) 10 MINUTES AFTER DEPARTURE. DEPARTURE FREQUENCY (frequency). SQUAWK (code).</blockquote>
+    <p class="note">None of the HPN SIDs publish an altitude restriction, so the SOP requires the "MAINTAIN (altitude)" phraseology. The SOP gives no departure-frequency order: get it from N90.</p>
+    <h3>Valid exits</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Gate</th><th>Exit</th><th>Radial</th></tr></thead>
+      <tbody>
+            <tr><td rowspan="5"><b>North</b></td><td>SAX</td><td class="num"></td></tr>
+            <tr><td>COATE</td><td class="num">SAX 311 / HUO 207</td></tr>
+            <tr><td>NEION</td><td class="num">LGA 322</td></tr>
+            <tr><td>HAAYS</td><td class="num">HUO 145</td></tr>
+            <tr><td>GAYEL</td><td class="num">DPK 320</td></tr>
+            <tr><td rowspan="5"><b>East</b></td><td>GREKI</td><td class="num">CMK 057</td></tr>
+            <tr><td>MERIT</td><td class="num">LGA 055</td></tr>
+            <tr><td>BAAYS</td><td class="num">BDR 054</td></tr>
+            <tr><td>CMK</td><td class="num"></td></tr>
+            <tr><td>BDR</td><td class="num"></td></tr>
+            <tr><td rowspan="4"><b>South</b></td><td>DIXIE</td><td class="num">JFK 221</td></tr>
+            <tr><td>WHITE</td><td class="num">JFK 221</td></tr>
+            <tr><td>SHIPP</td><td class="num">JFK 139</td></tr>
+            <tr><td>WAVEY</td><td class="num">JFK 136</td></tr>
+            <tr><td rowspan="7"><b>West</b></td><td>SBJ</td><td class="num"></td></tr>
+            <tr><td>BIGGY</td><td class="num">SBJ 237</td></tr>
+            <tr><td>LANNA</td><td class="num">PTW 059 / SBJ 274</td></tr>
+            <tr><td>PARKE</td><td class="num">BWZ 250</td></tr>
+            <tr><td>ELIOT</td><td class="num">SAX 252</td></tr>
+            <tr><td>NEWEL</td><td class="num">SAX 264</td></tr>
+            <tr><td>ZIMMZ</td><td class="num">SAX 250</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Common Amendments</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Filed exit</th><th>Join from KHPN</th></tr></thead>
+      <tbody>
+              <tr><td class="num">ARD</td><td class="num">BIGGY</td></tr>
+              <tr><td class="num">BOUND</td><td class="num">WAVEY</td></tr>
+              <tr><td class="num">CCC</td><td class="num">DPK</td></tr>
+              <tr><td class="num">COL</td><td class="num">WHITE</td></tr>
+              <tr><td class="num">ETX</td><td class="num">PARKE</td></tr>
+              <tr><td class="num">FJC</td><td class="num">PARKE</td></tr>
+              <tr><td class="num">GEDIC</td><td class="num">WAVEY GEDIC</td></tr>
+              <tr><td class="num">HFD</td><td class="num">MERIT HFD</td></tr>
+              <tr><td class="num">HOFFI</td><td class="num">BDR HOFFI</td></tr>
+              <tr><td class="num">HTO</td><td class="num">BDR HOFFI HTO</td></tr>
+              <tr><td class="num">HUO</td><td class="num">HAAYS</td></tr>
+              <tr><td class="num">IGN</td><td class="num">GREKI</td></tr>
+              <tr><td class="num">JOANI</td><td class="num">WHITE</td></tr>
+              <tr><td class="num">LAURN</td><td class="num">WHITE</td></tr>
+              <tr><td class="num">MARIO</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">NEWES</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">OWENZ</td><td class="num">WAVEY OWENZ</td></tr>
+              <tr><td class="num">PACER</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">PNE</td><td class="num">BIGGY PNE</td></tr>
+              <tr><td class="num">PUT</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">RAALF</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">RBV</td><td class="num">West: BIGGY<br>South: WHITE</td></tr>
+              <tr><td class="num">STW</td><td class="num">SAX</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="page" id="ground" data-page hidden>
+    <h2>Ground Control</h2>
+    <p class="lead">Sequence by alternating gate, then alternating exit fix, then performance. Never approve an intersection departure from taxiway Hotel.</p>
+    <h3>Departure sequencing</h3>
+    <ol>
+      <li>By alternating gate.</li>
+      <li>If not that, by alternating exit fix.</li>
+      <li>If not that, by aircraft performance, fastest to slowest.</li>
+    </ol>
+    <h3>Intersection departures</h3>
+    <p>Taxiway Hotel sits at the intersection of runways 11/29 and 16/34, which confuses pilots asking for an intersection departure. Intersection departures from Hotel, on any runway, may not be approved.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Runway 11</th><th>Runway 16</th><th>Runway 29</th><th>Runway 34</th></tr></thead>
+      <tbody>
+            <tr><td class="num">K · 4,450 ft</td><td class="num">A · 6,550 ft</td><td class="num">K · 4,450 ft</td><td class="num">A · 6,550 ft</td></tr>
+            <tr><td class="num">C · 3,800 ft</td><td class="num">B · 5,800 ft</td><td class="num">A · 3,450 ft</td><td class="num">K · 5,000 ft</td></tr>
+            <tr><td class="num">F · 3,000 ft</td><td class="num">C · 4,550 ft</td><td class="num">34 · 2,800 ft</td><td class="num">29 · 4,200 ft</td></tr>
+            <tr><td></td><td class="num">D · 4,500 ft</td><td class="num">L · 2,200 ft</td><td class="num">G · 3,350 ft</td></tr>
+            <tr><td></td><td class="num">E · 3,550 ft</td><td></td><td class="num">F · 3,100 ft</td></tr>
+            <tr><td></td><td class="num">F · 3,400 ft</td><td></td><td class="num">E · 2,900 ft</td></tr>
+            <tr><td></td><td class="num">G · 3,000 ft</td><td></td><td></td></tr>
+      </tbody>
+    </table></div>
+    <blockquote>RUNWAY (number) AT (taxiway) INTERSECTION DEPARTURE, (remaining length) FEET AVAILABLE.</blockquote>
+    <p class="note">Issue the remaining length to any pilot who asks and to all military aircraft (JO 7110.65 § 3-7-1(d)).</p>
+    <h3>Aircraft exiting the runway</h3>
+    <p>Local turns arrivals onto a taxiway parallel to the landing runway, so they keep taxiing away from the exit, and hands them to Ground once they're taxiing away. Local and Ground coordinate the taxiway flow as needed.</p>
+  </section>
+
+  <section class="page" id="local" data-page hidden>
+    <h2>Local Control</h2>
+    <p class="lead">Releases are automatic, separation is anticipated radar separation, and the tower never radar identifies IFR departures.</p>
+    <h3>Airspace and radar</h3>
+    <ul>
+      <li>The tower owns below 3,000 ft within 4 nm of the airport, and below 3,000 ft out to 6 nm along the runway 16/34 extended centerline, 1.5 nm either side.</li>
+      <li>Westchester ATCT is Limited Radar Approach Control certified.</li>
+      <li>Don't radar identify departing IFR aircraft. Switch them to Departure once clear of traffic, after seeing them turn toward the assigned climb, heading or visual reporting point.</li>
+      <li>The tower may radar identify VFR aircraft when needed for identification and separation or sequencing in the Class D.</li>
+    </ul>
+    <h3>Intersecting runways: runway 29 arrivals with 16/34 in use</h3>
+    <p>The runway 29 displaced threshold is close to the edge of 16/34. A runway 29 arrival may not cross the <b>original</b> runway 29 threshold until:</p>
+    <ul>
+      <li>the aircraft landing 16/34 has passed the runway 29 intersection, or has finished its landing roll and will hold short of it, or</li>
+      <li>the aircraft departing 16/34 has passed the runway 29 intersection, or is airborne and turning to avoid conflict.</li>
+    </ul>
+    <p class="note">In all other cases apply JO 7110.65 and use the runway 29 displaced threshold as the separation point.</p>
+    <h3>Land and hold short (LAHSO)</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Land</th><th>Hold short of</th><th>ALD</th><th>Aircraft groups</th></tr></thead>
+      <tbody>
+        <tr><td>16</td><td>11/29</td><td class="num">4,000 ft</td><td>1, 2, 3 and 4</td></tr>
+        <tr><td>11</td><td>16/34</td><td class="num">2,500 ft</td><td>1 only</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Daylight VFR only, and the LAHSO runway's landing distance must be dry (no visible moisture). The SOP's weather minimum reads "ceiling 100' and visibility 3 miles".</p>
+    <h3>VFR pattern work</h3>
+    <p>Pattern work on runway 11/29 makes its downwind over the runway 16 or 34 numbers, whichever matches the configuration, to stay clear of IFR arrivals.</p>
+    <blockquote>MAKE LEFT CLOSED TRAFFIC, MAKE YOUR DOWNWIND OVER THE RUNWAY 34 NUMBERS, RUNWAY 29, CLEARED FOR TAKEOFF.</blockquote>
+  </section>
+
+  <section class="page" id="p10" data-page hidden>
+    <h2>HPN flight strips (VATSIM live)</h2>
+    <p class="lead">Every aircraft prefiled out of KHPN or sitting on the ground at HPN, from the VATSIM data feed. Click a strip to see the full flight plan.</p>
+    <div class="fs-controls">
+      <button type="button" class="btn" id="fs-refresh">Load strips</button>
+      <button type="button" class="btn ghost" id="fs-addtest">Add test strip</button>
+      <button type="button" class="btn ghost" id="fs-custom">Custom strip</button>
+      <label class="chk"><input id="fs-auto" type="checkbox"> Auto every 30 s</label>
+      <label class="chk" for="fs-filter">Find</label>
+      <input type="text" id="fs-filter" placeholder="Callsign, type or fix" autocomplete="off" spellcheck="false">
+    </div>
+    <p class="status" id="fs-status">Strips load through the Claude desktop app's browser.</p>
+    <div class="fs-legend" aria-label="Route colors">
+      <span><span class="r-sid">HPN#</span> SOP departure procedure added</span>
+      <span><span class="r-amd">HAAYS</span> from Common Amendments</span>
+      <span><span class="r-fsid">HPN6</span> filed SID kept</span>
+      <span>JET / T-PROP / PROP: click to change</span>
+    </div>
+    <div id="fs-out" class="fs-out">
+      <p class="muted">No strips loaded yet. Press Load strips.</p>
+    </div>
+    <p class="note">On the ground means within 3 nm of HPN at 40 kt or less. Squawk shows — until one is assigned. Altitude is shown in hundreds of feet, as on the strip.</p>
+  </section>
+
+  <dialog class="pop" id="pop-fstest" aria-labelledby="pop-fstest-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-fstest-h">Custom test strip</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <form class="pop-body" id="fst-form">
+        <div class="fst-grid">
+          <label for="fst-cs">Callsign<input type="text" id="fst-cs" value="TST101" required maxlength="10"></label>
+          <label for="fst-type">Type / equipment<input type="text" id="fst-type" value="CL35/L" maxlength="12"></label>
+          <label for="fst-sq">Assigned squawk<input type="text" id="fst-sq" value="3445" maxlength="4" placeholder="blank = not assigned"></label>
+          <label for="fst-alt">Cruise altitude (ft)<input type="text" id="fst-alt" value="41000" maxlength="6"></label>
+          <label for="fst-dep">Departure<input type="text" id="fst-dep" value="KHPN" maxlength="4"></label>
+          <label for="fst-arr">Arrival<input type="text" id="fst-arr" value="KORD" maxlength="4"></label>
+          <label for="fst-alt2">Alternate<input type="text" id="fst-alt2" value="" maxlength="4"></label>
+          <label for="fst-tas">Cruise TAS (kt)<input type="text" id="fst-tas" value="450" maxlength="4"></label>
+          <label for="fst-rules">Flight rules<select id="fst-rules"><option value="I">IFR</option><option value="V">VFR</option></select></label>
+          <label for="fst-kind">Status<select id="fst-kind"><option value="gnd">On the ground</option><option value="pre">Prefiled</option></select></label>
+        </div>
+        <label for="fst-route" class="fst-wide">Route<input type="text" id="fst-route" value="GAYEL J95 SLT"></label>
+        <label for="fst-rmk" class="fst-wide">Remarks<input type="text" id="fst-rmk" value="/V/ TCAS"></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="submit" class="btn">Add strip</button>
+          <button type="button" class="btn ghost" id="fst-random">Random</button>
+          <button type="button" class="btn ghost" data-close>Cancel</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog class="pop" id="pop-clr" aria-labelledby="pop-clr-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-clr-h">Clearance</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <div class="pop-body" id="clr-body"></div>
+    </div>
+  </dialog>
+
+  <!-- ===================== REFERENCE POP-UPS ===================== -->
+  <dialog class="pop" id="pop-exits" aria-labelledby="pop-exits-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-exits-h">Valid Exits</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <div class="pop-body">
+        <div class="tw"><table>
+          <thead><tr><th>Gate</th><th>Exit</th><th>Radial</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="5"><b>North</b></td><td>SAX</td><td class="num"></td></tr>
+            <tr><td>COATE</td><td class="num">SAX 311 / HUO 207</td></tr>
+            <tr><td>NEION</td><td class="num">LGA 322</td></tr>
+            <tr><td>HAAYS</td><td class="num">HUO 145</td></tr>
+            <tr><td>GAYEL</td><td class="num">DPK 320</td></tr>
+            <tr><td rowspan="5"><b>East</b></td><td>GREKI</td><td class="num">CMK 057</td></tr>
+            <tr><td>MERIT</td><td class="num">LGA 055</td></tr>
+            <tr><td>BAAYS</td><td class="num">BDR 054</td></tr>
+            <tr><td>CMK</td><td class="num"></td></tr>
+            <tr><td>BDR</td><td class="num"></td></tr>
+            <tr><td rowspan="4"><b>South</b></td><td>DIXIE</td><td class="num">JFK 221</td></tr>
+            <tr><td>WHITE</td><td class="num">JFK 221</td></tr>
+            <tr><td>SHIPP</td><td class="num">JFK 139</td></tr>
+            <tr><td>WAVEY</td><td class="num">JFK 136</td></tr>
+            <tr><td rowspan="7"><b>West</b></td><td>SBJ</td><td class="num"></td></tr>
+            <tr><td>BIGGY</td><td class="num">SBJ 237</td></tr>
+            <tr><td>LANNA</td><td class="num">PTW 059 / SBJ 274</td></tr>
+            <tr><td>PARKE</td><td class="num">BWZ 250</td></tr>
+            <tr><td>ELIOT</td><td class="num">SAX 252</td></tr>
+            <tr><td>NEWEL</td><td class="num">SAX 264</td></tr>
+            <tr><td>ZIMMZ</td><td class="num">SAX 250</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="pop" id="pop-freqs" aria-labelledby="pop-freqs-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-freqs-h">Positions</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <div class="pop-body">
+        <div class="tw"><table>
+          <thead><tr><th>Position</th><th>Callsign</th><th>Radio name</th><th>Frequency</th><th>ID</th></tr></thead>
+          <tbody>
+        <tr><td>Clearance Delivery</td><td class="num">HPN_DEL</td><td>Westchester Clearance Delivery</td><td class="num">127.250</td><td class="num"></td></tr>
+        <tr><td>Ground Control</td><td class="num">HPN_GND</td><td>Westchester Ground</td><td class="num">121.825</td><td class="num"></td></tr>
+        <tr><td>Local Control</td><td class="num">HPN_TWR</td><td>Westchester Tower</td><td class="num">118.575</td><td class="num">1W</td></tr>
+        <tr><td>ATIS</td><td class="num">KHPN_ATIS</td><td></td><td class="num">133.800</td><td class="num"></td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">TRACON services are provided by New York TRACON (N90). The SOP gives no departure-frequency order.</p>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="pop" id="pop-amend" aria-labelledby="pop-amend-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-amend-h">Common Amendments</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <div class="pop-body">
+        <label class="muted" for="amend-filter" style="font-size:.78rem">Filter by fix or exit</label>
+        <input type="text" id="amend-filter" placeholder="e.g. HFD or MERIT" autocomplete="off" spellcheck="false">
+        <div class="tw"><table id="amend-exit">
+          <thead><tr><th>Filed exit</th><th>Join from KHPN</th></tr></thead>
+          <tbody>
+              <tr><td class="num">ARD</td><td class="num">BIGGY</td></tr>
+              <tr><td class="num">BOUND</td><td class="num">WAVEY</td></tr>
+              <tr><td class="num">CCC</td><td class="num">DPK</td></tr>
+              <tr><td class="num">COL</td><td class="num">WHITE</td></tr>
+              <tr><td class="num">ETX</td><td class="num">PARKE</td></tr>
+              <tr><td class="num">FJC</td><td class="num">PARKE</td></tr>
+              <tr><td class="num">GEDIC</td><td class="num">WAVEY GEDIC</td></tr>
+              <tr><td class="num">HFD</td><td class="num">MERIT HFD</td></tr>
+              <tr><td class="num">HOFFI</td><td class="num">BDR HOFFI</td></tr>
+              <tr><td class="num">HTO</td><td class="num">BDR HOFFI HTO</td></tr>
+              <tr><td class="num">HUO</td><td class="num">HAAYS</td></tr>
+              <tr><td class="num">IGN</td><td class="num">GREKI</td></tr>
+              <tr><td class="num">JOANI</td><td class="num">WHITE</td></tr>
+              <tr><td class="num">LAURN</td><td class="num">WHITE</td></tr>
+              <tr><td class="num">MARIO</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">NEWES</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">OWENZ</td><td class="num">WAVEY OWENZ</td></tr>
+              <tr><td class="num">PACER</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">PNE</td><td class="num">BIGGY PNE</td></tr>
+              <tr><td class="num">PUT</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">RAALF</td><td class="num">MERIT</td></tr>
+              <tr><td class="num">RBV</td><td class="num">West: BIGGY<br>South: WHITE</td></tr>
+              <tr><td class="num">STW</td><td class="num">SAX</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="pop" id="pop-prd" aria-labelledby="pop-prd-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-prd-h">ZNY Preferred Routes</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <div class="pop-body">
+        <p>The ZNY Preferred Route Database is a live search on the ZNY website. It isn't part of the SOP, so it opens in a new tab.</p>
+        <p><a class="btn" href="https://nyartcc.org/prd" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">Open the ZNY PRD</a></p>
+        <p class="note">Joining fixes for common airways and filed exits are under Common Amendments.</p>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="pop" id="pop-isect" aria-labelledby="pop-isect-h">
+    <div class="pop-in">
+      <div class="pop-head"><h2 id="pop-isect-h">Intersection Departures</h2><button type="button" class="pop-x" data-close aria-label="Close">×</button></div>
+      <div class="pop-body">
+        <div class="tw"><table>
+          <thead><tr><th>Runway 11</th><th>Runway 16</th><th>Runway 29</th><th>Runway 34</th></tr></thead>
+          <tbody>
+            <tr><td class="num">K · 4,450 ft</td><td class="num">A · 6,550 ft</td><td class="num">K · 4,450 ft</td><td class="num">A · 6,550 ft</td></tr>
+            <tr><td class="num">C · 3,800 ft</td><td class="num">B · 5,800 ft</td><td class="num">A · 3,450 ft</td><td class="num">K · 5,000 ft</td></tr>
+            <tr><td class="num">F · 3,000 ft</td><td class="num">C · 4,550 ft</td><td class="num">34 · 2,800 ft</td><td class="num">29 · 4,200 ft</td></tr>
+            <tr><td></td><td class="num">D · 4,500 ft</td><td class="num">L · 2,200 ft</td><td class="num">G · 3,350 ft</td></tr>
+            <tr><td></td><td class="num">E · 3,550 ft</td><td></td><td class="num">F · 3,100 ft</td></tr>
+            <tr><td></td><td class="num">F · 3,400 ft</td><td></td><td class="num">E · 2,900 ft</td></tr>
+            <tr><td></td><td class="num">G · 3,000 ft</td><td></td><td></td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">No intersection departures from taxiway Hotel, on any runway.</p>
+        <blockquote>RUNWAY (number) AT (taxiway) INTERSECTION DEPARTURE, (remaining length) FEET AVAILABLE.</blockquote>
+      </div>
+    </div>
+  </dialog>
+
+  <footer>Source: <a href="https://wiki.nyartcc.org/wiki/HPN_SOP" target="_blank" rel="noopener">vZNY Westchester ATCT SOP, Rev. 3 (revised 2026-01-12)</a>. VATSIM ATIS: data.vatsim.net. Real-world D-ATIS: atis.info. For VATSIM use only.</footer>
+</div>
+
+<script src="core/core.js"></script>
+<script src="airport.js"></script>
+
+</body>
+</html>

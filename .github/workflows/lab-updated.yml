@@ -1,0 +1,13 @@
+# Tells the Pages workflow on main that the lab branch changed,
+# so https://colef12.github.io/hpn-playbook/lab/ gets rebuilt.
+name: Lab updated
+
+on:
+  push:
+    branches: [lab]
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "lab changed; Publish Pages will rebuild /lab/"
